@@ -23,6 +23,17 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- CHART ---
+    function ensureChartLoaded() {
+        if (window.Chart) return Promise.resolve();
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = '/static/chart.umd.min.js';
+            script.onload = () => (window.Chart ? resolve() : reject(new Error('Chart.js failed to load')));
+            script.onerror = () => reject(new Error('Chart.js failed to load'));
+            document.head.appendChild(script);
+        });
+    }
+
     function initChart() {
         if (!window.Chart) {
             console.error("Chart.js is not loaded!");
@@ -230,8 +241,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- INITIALIZATION ---
     function init() {
-        initChart();
-        connectWebSocket();
+        ensureChartLoaded()
+            .then(() => initChart())
+            .catch(err => console.error(err))
+            .finally(() => connectWebSocket());
     }
 
     init();
