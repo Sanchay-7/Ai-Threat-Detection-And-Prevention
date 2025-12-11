@@ -427,12 +427,15 @@
         // SQL Injection Tests
         async function testSQLi(username, password) {
             try {
+                const fullPayload = `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+                console.log('Testing SQL payload:', fullPayload);
                 const response = await fetch(`${API_BASE_URL}/test`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+                    body: fullPayload
                 });
                 const result = await response.json();
+                console.log('SQL Test Result:', result);
                 
                 const resultDiv = document.getElementById('sqli-result');
                 if (result.sql && result.sql.decision) {
@@ -443,6 +446,7 @@
                     resultDiv.innerHTML = `<div class="result-title">✅ Safe Payload</div><div class="result-content">No SQL injection detected</div>`;
                 }
             } catch (e) {
+                console.error('SQL Test Error:', e);
                 document.getElementById('sqli-result').className = 'result info';
                 document.getElementById('sqli-result').innerHTML = `<div class="result-title">Error</div><div class="result-content">${e.message}</div>`;
             }
@@ -473,12 +477,14 @@
         // XSS Tests
         async function testXSS() {
             const payload = document.getElementById('xss-input').value;
+            console.log('Testing XSS payload:', payload);
             try {
                 const response = await fetch(`${API_BASE_URL}/test`, {
                     method: 'POST',
                     body: payload
                 });
                 const result = await response.json();
+                console.log('XSS Test Result:', result);
                 
                 const resultDiv = document.getElementById('xss-result');
                 if (result.xss && result.xss.decision) {
@@ -489,6 +495,7 @@
                     resultDiv.innerHTML = `<div class="result-title">✅ Safe Payload</div><div class="result-content">No XSS detected</div>`;
                 }
             } catch (e) {
+                console.error('XSS Test Error:', e);
                 document.getElementById('xss-result').className = 'result info';
                 document.getElementById('xss-result').innerHTML = `<div class="result-title">Error</div><div class="result-content">${e.message}</div>`;
             }
