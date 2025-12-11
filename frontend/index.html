@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
+    <title>AI DDoS Shield — Live Dashboard</title>
+    <script src="/static/chart.umd.min.js"></script>
+    <script src="/static/app.js" defer></script>
+    <style>
+        :root {
+            --bg-main: #0d1117; --bg-card: #161b22; --border-color: #30363d;
+            --text-main: #c9d1d9; --text-secondary: #8b949e; --accent-color: #58a6ff;
+            --green: #238636; --yellow: #d29922; --red: #da3633; --red-hover: #b92521;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            background-color: var(--bg-main); color: var(--text-main); margin: 0; padding: 1.5rem;
+        }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .header h1 { margin: 0; font-size: 1.5rem; }
+        .header .status { color: var(--text-secondary); font-family: monospace; font-size: 0.9rem; }
+        .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .status-connected { background-color: var(--green); }
+        .status-disconnected { background-color: var(--red); }
+        .grid { display: grid; gap: 1.5rem; }
+        .grid-3-col { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+        .grid-2-col { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
+        .card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem; }
+        .card h2 { margin-top: 0; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; }
+        .metric-card { text-align: center; }
+        .metric-value { font-size: 2.25rem; font-weight: 600; color: var(--text-main); }
+        .metric-label { font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.25rem; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border-color); white-space: nowrap;}
+        th { font-weight: 600; color: var(--text-secondary); }
+        tbody tr:last-child td { border-bottom: 0; }
+        .table-container { max-height: 300px; overflow-y: auto; }
+        .chart-container { position: relative; height: 300px; }
+        .events-container { max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; }
+        .event-item { padding: 0.25rem; }
+        .event-item .ip { color: var(--accent-color); }
+        .event-details { color: var(--text-secondary); font-style: italic; }
+        .kind-auto_block, .kind-manual_block { color: var(--red); }
+        .kind-rate_limit { color: var(--yellow); }
+        .kind-auto_unblock, .kind-manual_unblock { color: var(--green); }
+        .data-pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 500; }
+        .proba-low { background-color: rgba(35, 134, 54, 0.4); color: #3fb950; }
+        .proba-med { background-color: rgba(210, 153, 34, 0.4); color: #e3b341; }
+        .proba-high { background-color: rgba(218, 54, 51, 0.4); color: #ff7b72; }
+        .share-pill { background-color: rgba(88, 166, 255, 0.2); color: var(--accent-color); }
+        button { border: none; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-weight: 500; }
+        .btn-block { background-color: var(--accent-color); color: var(--bg-main); }
+        .btn-block:disabled { background-color: #274262; color: #8b949e; cursor: not-allowed; }
+        .btn-unblock { background-color: var(--red); color: white; }
+        .attack-card-ddos { border-left: 4px solid var(--red); }
+        .attack-card-xss { border-left: 4px solid var(--yellow); }
+        .attack-card-sql { border-left: 4px solid #ff6f00; }
+        .kind-xss { color: var(--yellow); }
+        .kind-sql { color: #ff6f00; }
+        .nav-button { background-color: var(--accent-color); color: var(--bg-main); padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; transition: background-color 0.2s; }
+        .nav-button:hover { background-color: #4a9eff; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>AI DDoS Shield — Live Dashboard</h1>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <a href="/test-suite" class="nav-button">🧪 Test Suite</a>
+            <div class="status"><span id="status-dot" class="status-dot status-disconnected"></span><span id="status-text">Connecting...</span></div>
+        </div>
+    </div>
+
+    <div class="grid grid-3-col">
+        <div class="card metric-card">
+            <div id="total-req-60s" class="metric-value">0.00</div>
+            <div class="metric-label">Total req/s (60s)</div>
+        </div>
+        <div class="card metric-card">
+            <div id="total-req-10s" class="metric-value">0.00</div>
+            <div class="metric-label">Total req/s (10s)</div>
+        </div>
+        <div class="card metric-card">
+            <div id="active-ips" class="metric-value">0</div>
+            <div class="metric-label">Active IPs</div>
+        </div>
+    </div>
+
+    <!-- Attack Statistics Section -->
+    <div class="grid grid-3-col" style="margin-top: 1.5rem;">
+        <div class="card metric-card attack-card-ddos">
+            <div id="ddos-attacks" class="metric-value">0</div>
+            <div class="metric-label">🛡️ DDoS Attacks Blocked</div>
+        </div>
+        <div class="card metric-card attack-card-xss">
+            <div id="xss-attacks" class="metric-value">0</div>
+            <div class="metric-label">🔒 XSS Attacks Blocked</div>
+        </div>
+        <div class="card metric-card attack-card-sql">
+            <div id="sql-attacks" class="metric-value">0</div>
+            <div class="metric-label">💉 SQL Injection Blocked</div>
+        </div>
+    </div>
+
+    <div class="grid grid-2-col" style="margin-top: 1.5rem;">
+        <div class="card">
+            <h2>Top Talkers</h2>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>IP</th><th>req/s (10s)</th><th>Proba</th><th>Share</th><th>Paths</th><th>Actions</th></tr></thead>
+                    <tbody id="top-talkers-body"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Blocked IPs</h2>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>IP</th><th>Expires in (s)</th><th>Actions</th></tr></thead>
+                    <tbody id="blocked-ips-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-2-col" style="margin-top: 1.5rem;">
+        <div class="card">
+            <h2>Traffic (req/s)</h2>
+            <div class="chart-container">
+                <canvas id="traffic-chart"></canvas>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Recent Events</h2>
+            <div id="events-container" class="events-container"></div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI DDoS Shield - Test Suite</title>
+    <style>
+        :root {
+            --bg-main: #0d1117; --bg-card: #161b22; --border-color: #30363d;
+            --text-main: #c9d1d9; --text-secondary: #8b949e; --accent-color: #58a6ff;
+            --green: #238636; --yellow: #d29922; --red: #da3633; --red-hover: #b92521;
+            --orange: #ff6f00;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-main); color: var(--text-main);
+            display: flex; height: 100vh; overflow: hidden;
+        }
+        .sidebar {
+            width: 250px; background-color: #0a0e17; border-right: 1px solid var(--border-color);
+            overflow-y: auto; padding: 1.5rem 0;
+        }
+        .sidebar-header {
+            padding: 0 1.5rem 1rem; border-bottom: 1px solid var(--border-color); margin-bottom: 1rem;
+        }
+        .sidebar-header h1 {
+            font-size: 1.1rem; color: var(--accent-color);
+        }
+        .sidebar-nav {
+            display: flex; flex-direction: column; gap: 0.5rem; padding: 0 0.75rem;
+        }
+        .nav-item {
+            padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; transition: all 0.2s;
+            color: var(--text-secondary); border-left: 3px solid transparent; font-size: 0.95rem;
+        }
+        .nav-item:hover {
+            background-color: var(--bg-card); color: var(--text-main);
+        }
+        .nav-item.active {
+            background-color: var(--bg-card); color: var(--accent-color); border-left-color: var(--accent-color);
+            font-weight: 600;
+        }
+        .nav-item.danger { color: var(--red); }
+        .nav-item.danger.active { color: var(--red); border-left-color: var(--red); }
+        .nav-item.warning { color: var(--yellow); }
+        .nav-item.warning.active { color: var(--yellow); border-left-color: var(--yellow); }
+        .nav-item.info { color: var(--orange); }
+        .nav-item.info.active { color: var(--orange); border-left-color: var(--orange); }
+        
+        .main-content {
+            flex: 1; display: flex; flex-direction: column; overflow: hidden;
+        }
+        .top-bar {
+            background-color: var(--bg-card); border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;
+        }
+        .top-bar h2 { margin: 0; font-size: 1.3rem; }
+        .status-indicator {
+            display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .status-dot.online { background-color: var(--green); }
+        .status-dot.offline { background-color: var(--red); }
+        
+        .content-area {
+            flex: 1; overflow-y: auto; padding: 2rem;
+        }
+        .page { display: none; }
+        .page.active { display: block; }
+        
+        .card {
+            background-color: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;
+        }
+        .card h3 { margin-top: 0; margin-bottom: 1rem; color: var(--accent-color); }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-secondary);
+        }
+        .form-group input, .form-group textarea {
+            width: 100%; padding: 0.75rem; border: 1px solid var(--border-color);
+            background-color: #0d1117; color: var(--text-main); border-radius: 4px;
+            font-family: monospace; font-size: 0.9rem;
+        }
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+        }
+        .form-group textarea {
+            resize: vertical; min-height: 100px; font-family: monospace;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem; border: none; border-radius: 6px; cursor: pointer;
+            font-weight: 500; transition: all 0.2s; font-size: 0.9rem;
+        }
+        .btn-primary {
+            background-color: var(--accent-color); color: var(--bg-main);
+        }
+        .btn-primary:hover { background-color: #4a9eff; }
+        .btn-danger {
+            background-color: var(--red); color: white;
+        }
+        .btn-danger:hover { background-color: var(--red-hover); }
+        .btn-secondary {
+            background-color: var(--border-color); color: var(--text-main);
+        }
+        .btn-secondary:hover { background-color: #424a53; }
+        
+        .result {
+            margin-top: 1.5rem; padding: 1rem; border-radius: 6px; border-left: 4px solid;
+            display: none; font-family: monospace; font-size: 0.85rem; line-height: 1.5;
+        }
+        .result.success {
+            display: block; border-left-color: var(--green); background-color: rgba(35, 134, 54, 0.1);
+            color: #3fb950;
+        }
+        .result.warning {
+            display: block; border-left-color: var(--yellow); background-color: rgba(210, 153, 34, 0.1);
+            color: #e3b341;
+        }
+        .result.danger {
+            display: block; border-left-color: var(--red); background-color: rgba(218, 54, 51, 0.1);
+            color: #ff7b72;
+        }
+        .result.info {
+            display: block; border-left-color: var(--orange); background-color: rgba(255, 111, 0, 0.1);
+            color: #ffb366;
+        }
+        
+        .result-title { font-weight: 600; margin-bottom: 0.5rem; }
+        .result-content { white-space: pre-wrap; word-break: break-word; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        @media (max-width: 1200px) {
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+        
+        .test-list {
+            list-style: none; padding: 0;
+        }
+        .test-list li {
+            padding: 0.75rem; background-color: #0d1117; border: 1px solid var(--border-color);
+            border-radius: 4px; margin-bottom: 0.5rem; cursor: pointer; transition: all 0.2s;
+        }
+        .test-list li:hover { background-color: var(--bg-card); }
+        .test-list li code {
+            display: block; font-size: 0.8rem; color: var(--accent-color); margin-top: 0.25rem;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h1>🛡️ Security Test Suite</h1>
+        </div>
+        <div class="sidebar-nav">
+            <div class="nav-item active" data-page="dashboard">📊 Dashboard</div>
+            <div class="nav-item danger" data-page="sqli">💉 SQL Injection</div>
+            <div class="nav-item warning" data-page="xss">🔒 XSS Testing</div>
+            <div class="nav-item info" data-page="payloads">📝 Test Payloads</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <h2 id="page-title">📊 Dashboard</h2>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <a href="/" style="color: var(--text-secondary); text-decoration: none; padding: 0.5rem 1rem; border-radius: 6px; background-color: rgba(88, 166, 255, 0.1); transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(88, 166, 255, 0.2)'" onmouseout="this.style.backgroundColor='rgba(88, 166, 255, 0.1)'">← Back to Dashboard</a>
+                <div class="status-indicator">
+                    <span id="status-text">Connecting...</span>
+                    <div id="status-dot" class="status-dot offline"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Dashboard Page -->
+            <div id="dashboard" class="page active">
+                <div class="grid-2">
+                    <div class="card">
+                        <h3>📊 Attack Statistics</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 2.5rem; font-weight: bold; color: var(--red);" id="ddos-count">0</div>
+                                <div style="font-size: 0.9rem; color: var(--text-secondary);">DDoS Attacks</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 2.5rem; font-weight: bold; color: var(--yellow);" id="xss-count">0</div>
+                                <div style="font-size: 0.9rem; color: var(--text-secondary);">XSS Attacks</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 2.5rem; font-weight: bold; color: var(--orange);" id="sql-count">0</div>
+                                <div style="font-size: 0.9rem; color: var(--text-secondary);">SQL Injection</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 2.5rem; font-weight: bold; color: var(--accent-color);" id="total-count">0</div>
+                                <div style="font-size: 0.9rem; color: var(--text-secondary);">Total Attacks</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>⚡ Live Metrics</h3>
+                        <div style="display: grid; gap: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">
+                                <span>Requests/sec (60s)</span>
+                                <span id="req-60s" style="color: var(--accent-color);">0.00</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">
+                                <span>Requests/sec (10s)</span>
+                                <span id="req-10s" style="color: var(--accent-color);">0.00</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+                                <span>Active IPs</span>
+                                <span id="active-ips" style="color: var(--accent-color);">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📝 Recent Events</h3>
+                    <div id="events-log" style="max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; line-height: 1.6;">
+                        <div style="color: var(--text-secondary);">Waiting for events...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SQL Injection Page -->
+            <div id="sqli" class="page">
+                <div class="grid-2">
+                    <div class="card">
+                        <h3>🔓 Login Form (SQL Injection Test)</h3>
+                        <form id="login-form">
+                            <div class="form-group">
+                                <label for="username">Username or Email</label>
+                                <input type="text" id="username" placeholder="admin" value="">
+                            </div>
+                            <div class="form-group">
+                                <label for="password">Password</label>
+                                <input type="password" id="password" placeholder="password" value="">
+                            </div>
+                            <div style="display: flex; gap: 1rem;">
+                                <button type="submit" class="btn btn-primary">Login</button>
+                                <button type="button" class="btn btn-secondary" onclick="loadSQLiPayload('basic')">Try Basic Injection</button>
+                                <button type="button" class="btn btn-secondary" onclick="loadSQLiPayload('advanced')">Try Advanced Injection</button>
+                            </div>
+                        </form>
+                        <div id="sqli-result" class="result"></div>
+                    </div>
+
+                    <div class="card">
+                        <h3>📋 Common SQL Injection Payloads</h3>
+                        <ul class="test-list">
+                            <li onclick="loadSQLiPayload('or-1-1')">
+                                <strong>OR 1=1</strong>
+                                <code>' OR '1'='1</code>
+                            </li>
+                            <li onclick="loadSQLiPayload('union-select')">
+                                <strong>UNION SELECT</strong>
+                                <code>' UNION SELECT NULL,NULL--</code>
+                            </li>
+                            <li onclick="loadSQLiPayload('comment')">
+                                <strong>Comment Bypass</strong>
+                                <code>' OR 1=1 --</code>
+                            </li>
+                            <li onclick="loadSQLiPayload('time-based')">
+                                <strong>Time-Based Blind</strong>
+                                <code>' AND SLEEP(5)--</code>
+                            </li>
+                            <li onclick="loadSQLiPayload('stacked')">
+                                <strong>Stacked Queries</strong>
+                                <code>'; DROP TABLE users;--</code>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- XSS Testing Page -->
+            <div id="xss" class="page">
+                <div class="grid-2">
+                    <div class="card">
+                        <h3>🎯 XSS Attack Tester</h3>
+                        <div class="form-group">
+                            <label for="xss-input">Inject HTML/JavaScript</label>
+                            <textarea id="xss-input" placeholder="<img src=x onerror=alert('XSS')>"></textarea>
+                        </div>
+                        <div style="display: flex; gap: 1rem;">
+                            <button class="btn btn-primary" onclick="testXSS()">Test XSS</button>
+                            <button type="button" class="btn btn-secondary" onclick="loadXSSPayload('img-onerror')">Try Img Onerror</button>
+                            <button type="button" class="btn btn-secondary" onclick="loadXSSPayload('script')">Try Script Tag</button>
+                        </div>
+                        <div id="xss-result" class="result"></div>
+                    </div>
+
+                    <div class="card">
+                        <h3>📋 Common XSS Payloads</h3>
+                        <ul class="test-list">
+                            <li onclick="loadXSSPayload('script')">
+                                <strong>Script Tag</strong>
+                                <code>&lt;script&gt;alert('XSS')&lt;/script&gt;</code>
+                            </li>
+                            <li onclick="loadXSSPayload('img-onerror')">
+                                <strong>Img Onerror</strong>
+                                <code>&lt;img src=x onerror=alert('XSS')&gt;</code>
+                            </li>
+                            <li onclick="loadXSSPayload('svg-onload')">
+                                <strong>SVG Onload</strong>
+                                <code>&lt;svg onload=alert('XSS')&gt;</code>
+                            </li>
+                            <li onclick="loadXSSPayload('iframe')">
+                                <strong>IFrame</strong>
+                                <code>&lt;iframe src="javascript:alert('XSS')"&gt;&lt;/iframe&gt;</code>
+                            </li>
+                            <li onclick="loadXSSPayload('event-handler')">
+                                <strong>Event Handler</strong>
+                                <code>&lt;div onmouseover="alert('XSS')"&gt;Hover&lt;/div&gt;</code>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Payloads Page -->
+            <div id="payloads" class="page">
+                <div class="card">
+                    <h3>📝 Batch Test Payloads</h3>
+                    <div class="form-group">
+                        <label for="batch-payloads">Enter payloads (one per line)</label>
+                        <textarea id="batch-payloads" placeholder="' OR 1=1 --&#10;<script>alert(1)</script>&#10;normal input"></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="testBatch()">Test All Payloads</button>
+                    <div id="batch-result" class="result"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:8000';
+        const WS_URL = 'ws://127.0.0.1:8000/ws/metrics';
+        let ws = null;
+
+        // Page Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                // Update active nav item
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+
+                // Update page
+                const page = item.getAttribute('data-page');
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById(page).classList.add('active');
+
+                // Update title
+                const titles = {
+                    'dashboard': '📊 Dashboard',
+                    'sqli': '💉 SQL Injection Testing',
+                    'xss': '🔒 XSS Testing',
+                    'payloads': '📝 Test Payloads'
+                };
+                document.getElementById('page-title').textContent = titles[page] || 'Dashboard';
+            });
+        });
+
+        // WebSocket Connection
+        function connectWebSocket() {
+            ws = new WebSocket(WS_URL);
+            ws.onopen = () => {
+                document.getElementById('status-dot').className = 'status-dot online';
+                document.getElementById('status-text').textContent = 'Connected';
+            };
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    updateDashboard(data);
+                } catch (e) {
+                    console.error('WebSocket parse error:', e);
+                }
+            };
+            ws.onclose = () => {
+                document.getElementById('status-dot').className = 'status-dot offline';
+                document.getElementById('status-text').textContent = 'Disconnected';
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        function updateDashboard(data) {
+            // Update attack stats
+            if (data.attack_stats) {
+                document.getElementById('ddos-count').textContent = data.attack_stats.ddos || 0;
+                document.getElementById('xss-count').textContent = data.attack_stats.xss || 0;
+                document.getElementById('sql-count').textContent = data.attack_stats.sql || 0;
+                document.getElementById('total-count').textContent = data.attack_stats.total || 0;
+            }
+
+            // Update metrics
+            document.getElementById('req-60s').textContent = (data.total_req_rate_60s || 0).toFixed(2);
+            document.getElementById('req-10s').textContent = (data.total_req_rate_10s || 0).toFixed(2);
+            document.getElementById('active-ips').textContent = data.active_ips_count || 0;
+
+            // Update events
+            if (data.events && data.events.length > 0) {
+                const eventsLog = document.getElementById('events-log');
+                eventsLog.innerHTML = '';
+                data.events.forEach(event => {
+                    const timestamp = new Date(event.ts * 1000).toLocaleTimeString();
+                    const div = document.createElement('div');
+                    div.style.marginBottom = '0.25rem';
+                    div.innerHTML = `<span style="color: var(--text-secondary);">[${timestamp}]</span> <span style="color: var(--accent-color);">${event.ip}</span> - ${event.reason}`;
+                    eventsLog.appendChild(div);
+                });
+            }
+        }
+
+        // SQL Injection Tests
+        async function testSQLi(username, password) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/test`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+                });
+                const result = await response.json();
+                
+                const resultDiv = document.getElementById('sqli-result');
+                if (result.sql && result.sql.decision) {
+                    resultDiv.className = 'result danger';
+                    resultDiv.innerHTML = `<div class="result-title">⚠️ SQL Injection DETECTED!</div><div class="result-content">Payload: ${result.sql.reason}\nScore: ${(result.sql.score * 100).toFixed(1)}%</div>`;
+                } else {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `<div class="result-title">✅ Safe Payload</div><div class="result-content">No SQL injection detected</div>`;
+                }
+            } catch (e) {
+                document.getElementById('sqli-result').className = 'result info';
+                document.getElementById('sqli-result').innerHTML = `<div class="result-title">Error</div><div class="result-content">${e.message}</div>`;
+            }
+        }
+
+        function loadSQLiPayload(type) {
+            const payloads = {
+                'basic': { username: "admin' OR '1'='1", password: "anything" },
+                'advanced': { username: "admin' --", password: "ignored" },
+                'or-1-1': { username: "' OR '1'='1", password: "anything" },
+                'union-select': { username: "' UNION SELECT NULL,NULL--", password: "x" },
+                'comment': { username: "admin' OR 1=1 --", password: "x" },
+                'time-based': { username: "' AND SLEEP(5)--", password: "x" },
+                'stacked': { username: "'; DROP TABLE users;--", password: "x" }
+            };
+            const payload = payloads[type];
+            document.getElementById('username').value = payload.username;
+            document.getElementById('password').value = payload.password;
+        }
+
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            testSQLi(username, password);
+        });
+
+        // XSS Tests
+        async function testXSS() {
+            const payload = document.getElementById('xss-input').value;
+            try {
+                const response = await fetch(`${API_BASE_URL}/test`, {
+                    method: 'POST',
+                    body: payload
+                });
+                const result = await response.json();
+                
+                const resultDiv = document.getElementById('xss-result');
+                if (result.xss && result.xss.decision) {
+                    resultDiv.className = 'result danger';
+                    resultDiv.innerHTML = `<div class="result-title">⚠️ XSS DETECTED!</div><div class="result-content">Reason: ${result.xss.reason}\nScore: ${(result.xss.score * 100).toFixed(1)}%</div>`;
+                } else {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `<div class="result-title">✅ Safe Payload</div><div class="result-content">No XSS detected</div>`;
+                }
+            } catch (e) {
+                document.getElementById('xss-result').className = 'result info';
+                document.getElementById('xss-result').innerHTML = `<div class="result-title">Error</div><div class="result-content">${e.message}</div>`;
+            }
+        }
+
+        function loadXSSPayload(type) {
+            const payloads = {
+                'script': '<script>alert("XSS")<\/script>',
+                'img-onerror': '<img src=x onerror="alert(\'XSS\')">',
+                'svg-onload': '<svg onload="alert(\'XSS\')"><\/svg>',
+                'iframe': '<iframe src="javascript:alert(\'XSS\')"><\/iframe>',
+                'event-handler': '<div onmouseover="alert(\'XSS\')">Hover me<\/div>'
+            };
+            document.getElementById('xss-input').value = payloads[type];
+        }
+
+        // Batch Test
+        async function testBatch() {
+            const payloads = document.getElementById('batch-payloads').value.split('\n').filter(p => p.trim());
+            if (!payloads.length) return;
+
+            const resultDiv = document.getElementById('batch-result');
+            resultDiv.className = 'result info';
+            resultDiv.innerHTML = `<div class="result-title">Testing ${payloads.length} payloads...</div>`;
+
+            const results = [];
+            for (const payload of payloads) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/test`, {
+                        method: 'POST',
+                        body: payload
+                    });
+                    const data = await response.json();
+                    results.push({
+                        payload: payload.substring(0, 50),
+                        xss: data.xss?.decision || false,
+                        sql: data.sql?.decision || false
+                    });
+                } catch (e) {
+                    results.push({
+                        payload: payload.substring(0, 50),
+                        error: e.message
+                    });
+                }
+            }
+
+            let html = `<div class="result-title">Test Results (${results.length} payloads)</div><div class="result-content">`;
+            results.forEach((r, i) => {
+                html += `${i + 1}. ${r.payload}... → `;
+                if (r.error) {
+                    html += `Error: ${r.error}`;
+                } else {
+                    html += `XSS: ${r.xss ? '⚠️' : '✅'} | SQLi: ${r.sql ? '⚠️' : '✅'}`;
+                }
+                html += '\n';
+            });
+            html += '</div>';
+            resultDiv.innerHTML = html;
+        }
+
+        // Initialize
+        connectWebSocket();
+    </script>
+</body>
+</html>

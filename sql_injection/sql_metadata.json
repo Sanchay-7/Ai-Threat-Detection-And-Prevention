@@ -1,0 +1,10 @@
+{
+  "f1_score": 0.9906393148775144,
+  "auc_score": 0.9971932691958942,
+  "training_samples": 17092,
+  "test_samples": 4273,
+  "model_type": "rf_xgb_ensemble",
+  "sample_fraction": 0.1,
+  "max_features": 3000,
+  "n_estimators": 35
+}

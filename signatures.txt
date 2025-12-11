@@ -1,0 +1,12 @@
+# Common web attack and scanning patterns
+/etc/passwd
+/bin/sh
+wget http
+curl http
+union select
+drop table
+' or 1=1--
+<script>
+nmap
+zgrab
+masscan
