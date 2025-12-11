@@ -25,13 +25,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- CHART ---
     function ensureChartLoaded() {
         if (window.Chart) return Promise.resolve();
-        return new Promise((resolve, reject) => {
+        const loadScript = (src) => new Promise((resolve, reject) => {
             const script = document.createElement('script');
-            script.src = '/static/chart.umd.min.js';
+            script.src = src;
             script.onload = () => (window.Chart ? resolve() : reject(new Error('Chart.js failed to load')));
             script.onerror = () => reject(new Error('Chart.js failed to load'));
             document.head.appendChild(script);
         });
+
+        // Try local copy first; fallback to CDN if it throws
+        return loadScript('/static/chart.umd.min.js').catch(() => loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js'));
     }
 
     function initChart() {
