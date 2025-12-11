@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const API_BASE_URL = `${window.location.protocol}//${window.location.host}`;
     const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/metrics`;
     let trafficChart;
+    let attackChart;
     const CHART_MAX_POINTS = 60;
 
     // --- DOM ELEMENTS ---
@@ -20,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
         blockedIpsBody: document.getElementById('blocked-ips-body'),
         eventsContainer: document.getElementById('events-container'),
         trafficChartCanvas: document.getElementById('traffic-chart'),
+        attackChartCanvas: document.getElementById('attack-chart'),
     };
 
     // --- CHART ---
@@ -78,6 +80,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function initAttackChart() {
+        if (!window.Chart) return;
+        const ctx = elements.attackChartCanvas.getContext('2d');
+        attackChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['DDoS', 'XSS', 'SQLi'],
+                datasets: [{
+                    label: 'Attacks',
+                    data: [0, 0, 0],
+                    backgroundColor: ['#da3633', '#d29922', '#ff6f00']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#30363d' }, ticks: { color: '#8b949e' } },
+                    x: { grid: { display: false }, ticks: { color: '#8b949e' } }
+                }
+            }
+        });
+    }
+
     // --- UI UPDATE LOGIC ---
     const asNum = (v, fallback = 0) => {
         const n = Number(v);
@@ -98,6 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
             elements.ddosAttacks.textContent = asNum(data.attack_stats.ddos);
             elements.xssAttacks.textContent = asNum(data.attack_stats.xss);
             elements.sqlAttacks.textContent = asNum(data.attack_stats.sql);
+            updateAttackChart(data.attack_stats);
         }
 
         updateTable(elements.topTalkersBody, data.top_talkers, renderTopTalkerRow);
@@ -107,6 +135,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (trafficChart) {
             updateChart(total60);
         }
+    }
+
+    function updateAttackChart(stats) {
+        if (!attackChart || !stats) return;
+        attackChart.data.datasets[0].data = [
+            asNum(stats.ddos),
+            asNum(stats.xss),
+            asNum(stats.sql)
+        ];
+        attackChart.update('none');
     }
 
     function updateTable(tbody, items, rowRenderer) {
@@ -245,7 +283,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- INITIALIZATION ---
     function init() {
         ensureChartLoaded()
-            .then(() => initChart())
+            .then(() => {
+                initChart();
+                initAttackChart();
+            })
             .catch(err => console.error(err))
             .finally(() => connectWebSocket());
     }
