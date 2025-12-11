@@ -427,12 +427,11 @@
         // SQL Injection Tests
         async function testSQLi(username, password) {
             try {
-                const fullPayload = `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
-                console.log('Testing SQL payload:', fullPayload);
+                // Send just the username as the payload, not the form data
+                console.log('Testing SQL payload:', username);
                 const response = await fetch(`${API_BASE_URL}/test`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: fullPayload
+                    body: username
                 });
                 const result = await response.json();
                 console.log('SQL Test Result:', result);
