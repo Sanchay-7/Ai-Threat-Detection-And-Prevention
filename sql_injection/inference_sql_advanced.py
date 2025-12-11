@@ -19,6 +19,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import config
+from dataset_blocklist import check_sql_blocklist
 
 # SQL Injection Signature patterns
 _SIG_PATTERNS = [
@@ -73,7 +74,18 @@ def predict(payload: str) -> dict:
         }
     """
     
-    # Check signatures first
+    # Check dataset blocklist first (highest priority)
+    if check_sql_blocklist(payload):
+        return {
+            'decision': True,
+            'score': 1.0,
+            'reason': 'Blocked: Attack payload found in training dataset',
+            'signature_match': True,
+            'ensemble_score': 1.0,
+            'neural_score': 1.0
+        }
+    
+    # Check signatures second
     for pattern in _COMPILED_PATTERNS:
         if pattern.search(payload):
             return {
