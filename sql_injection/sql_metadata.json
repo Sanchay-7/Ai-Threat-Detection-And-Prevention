@@ -1,10 +1,14 @@
 {
-  "f1_score": 0.9906393148775144,
-  "auc_score": 0.9971932691958942,
-  "training_samples": 17092,
-  "test_samples": 4273,
-  "model_type": "rf_xgb_ensemble",
-  "sample_fraction": 0.1,
-  "max_features": 3000,
-  "n_estimators": 35
+  "ensemble_f1": 0.9945252792475014,
+  "ensemble_auc": 0.9990375812733563,
+  "training_samples": 195254,
+  "test_samples": 48814,
+  "max_features": 8000,
+  "used_gpu": false,
+  "skip_nn": false,
+  "nn_sample": 0.1,
+  "nn_f1": 0.9744525547445255,
+  "nn_auc": 0.9939159958230915,
+  "nn_train_samples": 19525,
+  "nn_test_samples": 4881
 }
