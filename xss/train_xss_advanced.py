@@ -35,8 +35,10 @@ import config
 # Map column names
 XSS_CSV = "dataset/Large-Scale Annotated Dataset for Cross-Site Scripting (XSS) Attack Detection.csv"
 COLUMN_MAPPING = {
-    'Sentence': 'text',  # Adjust if column name is different
-    'label': 'label'
+    'Sentence': 'text',
+    'Query': 'text',
+    'label': 'label',
+    'Label': 'label'
 }
 
 def load_xss_dataset(filepath, sample_fraction=1.0):
