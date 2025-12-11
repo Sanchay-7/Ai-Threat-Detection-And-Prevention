@@ -1,7 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- STATE & CONFIG ---
-    const API_BASE_URL = 'http://127.0.0.1:8000';
-    const WS_URL = 'ws://127.0.0.1:8000/ws/metrics';
+    // Use current origin so dashboard works on any host
+    const API_BASE_URL = `${window.location.protocol}//${window.location.host}`;
+    const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/metrics`;
     let trafficChart;
     const CHART_MAX_POINTS = 60;
 
